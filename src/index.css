@@ -35,6 +35,15 @@ html, body {
   color: var(--color-scand-text) !important;
   font-family: var(--font-sans);
   transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent accidental text selection on structural UI elements */
+button, a, select, header, footer, [role="tab"], .select-none {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 /* Custom styles to match Scandinavian Minimalist guidelines */

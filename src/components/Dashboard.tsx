@@ -18,6 +18,7 @@ import {
   Target
 } from 'lucide-react';
 import { DayPlan, TargetGoal, shuffleAllExercisesInDay, shuffleSingleExercise } from '../data/exercises';
+import { triggerLightHaptic, triggerMediumHaptic, triggerSuccessHaptic } from '../lib/haptics';
 
 interface DashboardProps {
   plan: DayPlan[];
@@ -47,13 +48,25 @@ export default function Dashboard({
     const day = { ...updatedPlan[dayIndex] };
     if (day.exercises) {
       const exercises = [...day.exercises];
+      const nextDone = !exercises[exerciseIndex].done;
       exercises[exerciseIndex] = {
         ...exercises[exerciseIndex],
-        done: !exercises[exerciseIndex].done
+        done: nextDone
       };
       day.exercises = exercises;
       updatedPlan[dayIndex] = day;
       onUpdatePlan(updatedPlan);
+
+      if (nextDone) {
+        const allDone = exercises.every(e => e.done);
+        if (allDone) {
+          triggerSuccessHaptic();
+        } else {
+          triggerLightHaptic();
+        }
+      } else {
+        triggerLightHaptic();
+      }
     }
   };
 
@@ -62,6 +75,7 @@ export default function Dashboard({
     const updatedPlan = [...plan];
     updatedPlan[dayIndex] = shuffleAllExercisesInDay(updatedPlan[dayIndex], location, equipmentPref, targetGoal);
     onUpdatePlan(updatedPlan);
+    triggerMediumHaptic();
   };
 
   // Shuffle a single exercise
@@ -69,6 +83,7 @@ export default function Dashboard({
     const updatedPlan = [...plan];
     updatedPlan[dayIndex] = shuffleSingleExercise(updatedPlan[dayIndex], exerciseIndex, location, equipmentPref, targetGoal);
     onUpdatePlan(updatedPlan);
+    triggerMediumHaptic();
   };
 
   // Reset all exercises in current plan

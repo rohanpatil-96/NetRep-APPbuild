@@ -128,6 +128,37 @@ export default function Settings({ settings, onUpdateSettings, onResetApp }: Set
               </button>
             </div>
           </div>
+
+          {/* Haptic Vibrations Toggle */}
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-display uppercase tracking-widest font-black text-scand-text/60">
+              Tactile Haptics (Vibrations)
+            </label>
+            <div className="flex bg-scand-bg p-1 rounded-xl border border-scand-border">
+              <button
+                type="button"
+                onClick={() => onUpdateSettings({ disableVibrations: false })}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  !settings.disableVibrations
+                    ? 'bg-accent text-scand-bg shadow-xs'
+                    : 'text-scand-text/60 hover:text-scand-text/90'
+                }`}
+              >
+                Enabled
+              </button>
+              <button
+                type="button"
+                onClick={() => onUpdateSettings({ disableVibrations: true })}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  settings.disableVibrations
+                    ? 'bg-accent text-scand-bg shadow-xs'
+                    : 'text-scand-text/60 hover:text-scand-text/90'
+                }`}
+              >
+                Disabled
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Dynamic calculations breakdown */}

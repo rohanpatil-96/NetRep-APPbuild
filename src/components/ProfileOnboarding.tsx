@@ -13,6 +13,7 @@ export default function ProfileOnboarding({ onComplete }: ProfileOnboardingProps
   const [startingWeight, setStartingWeight] = useState<string>('');
   const [targetWeight, setTargetWeight] = useState<string>('');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lbs'>('kg');
+  const [disableVibrations, setDisableVibrations] = useState<boolean>(false);
   
   // Custom in-app warning message
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -62,7 +63,8 @@ export default function ProfileOnboarding({ onComplete }: ProfileOnboardingProps
       gender,
       startingWeight: parsedStartWeight,
       targetWeight: parsedTargetWeight,
-      weightUnit
+      weightUnit,
+      disableVibrations
     });
   };
 
@@ -175,8 +177,36 @@ export default function ProfileOnboarding({ onComplete }: ProfileOnboardingProps
             </select>
           </div>
 
-          {/* Empty Space for alignment on desktop */}
-          <div className="hidden sm:block"></div>
+          {/* Haptic Vibrations Toggle */}
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-display uppercase tracking-widest font-black text-scand-text/60">
+              Tactile Haptics (Vibrations)
+            </label>
+            <div className="flex bg-scand-bg p-1 rounded-xl border border-scand-border">
+              <button
+                type="button"
+                onClick={() => setDisableVibrations(false)}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  !disableVibrations
+                    ? 'bg-accent text-scand-bg shadow-xs'
+                    : 'text-scand-text/60 hover:text-scand-text/90'
+                }`}
+              >
+                Enabled
+              </button>
+              <button
+                type="button"
+                onClick={() => setDisableVibrations(true)}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  disableVibrations
+                    ? 'bg-accent text-scand-bg shadow-xs'
+                    : 'text-scand-text/60 hover:text-scand-text/90'
+                }`}
+              >
+                Disabled
+              </button>
+            </div>
+          </div>
 
           {/* Starting Weight */}
           <div className="space-y-1.5">

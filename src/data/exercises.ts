@@ -32,6 +32,7 @@ export interface UserSettings {
   startingWeight: number; // in kg
   targetWeight: number; // in kg
   weightUnit: 'kg' | 'lbs';
+  disableVibrations?: boolean;
 }
 
 export interface WeightLog {

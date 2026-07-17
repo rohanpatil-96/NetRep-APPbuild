@@ -18,6 +18,8 @@ import WeightTracker from './components/WeightTracker';
 import Settings from './components/Settings';
 import PlanBuilder from './components/PlanBuilder';
 import ProfileOnboarding from './components/ProfileOnboarding';
+import { Capacitor } from '@capacitor/core';
+import { triggerSelectionHaptic, triggerSuccessHaptic } from './lib/haptics';
 
 const EMPTY_SETTINGS: UserSettings = {
   age: 0,
@@ -91,7 +93,7 @@ export default function App() {
   const [showDebugModal, setShowDebugModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
 
-  // --- HTML Theme Effect ---
+  // --- HTML Theme Effect & Mobile StatusBar Configuration ---
   useEffect(() => {
     const root = document.documentElement;
     if (theme === 'dark') {
@@ -102,7 +104,71 @@ export default function App() {
       root.setAttribute('data-theme', 'light');
     }
     localStorage.setItem('gym_checklist_theme', theme);
+
+    // Apply StatusBar changes if on Native platform
+    const updateStatusBar = async () => {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const { StatusBar, Style } = await import('@capacitor/status-bar');
+          if (theme === 'dark') {
+            await StatusBar.setStyle({ style: Style.Dark });
+            await StatusBar.setBackgroundColor({ color: '#0b111e' }); // Matches dark mode --color-scand-bg
+          } else {
+            await StatusBar.setStyle({ style: Style.Light });
+            await StatusBar.setBackgroundColor({ color: '#faf3dd' }); // Matches light mode --color-scand-bg
+          }
+        } catch (e) {
+          console.warn('Native status bar adjustment skipped:', e);
+        }
+      }
+    };
+    updateStatusBar();
   }, [theme]);
+
+  // --- Android Physical Back Button Support ---
+  useEffect(() => {
+    let backButtonListener: Promise<{ remove: () => void }> | null = null;
+
+    if (Capacitor.isNativePlatform()) {
+      const initBackButton = async () => {
+        try {
+          const { App: CapApp } = await import('@capacitor/app');
+          backButtonListener = Promise.resolve(
+            CapApp.addListener('backButton', () => {
+              if (showDebugModal) {
+                setShowDebugModal(false);
+              } else if (showResetModal) {
+                setShowResetModal(false);
+              } else if (activeTab !== 'workout') {
+                setActiveTab('workout');
+              } else {
+                CapApp.exitApp();
+              }
+            })
+          );
+        } catch (e) {
+          console.warn('Native back button listener failed to initialize:', e);
+        }
+      };
+      initBackButton();
+    }
+
+    return () => {
+      if (backButtonListener) {
+        backButtonListener.then(listener => listener.remove());
+      }
+    };
+  }, [showDebugModal, showResetModal, activeTab]);
+
+  // --- Haptics on tab changes ---
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    triggerSelectionHaptic();
+  }, [activeTab]);
 
   // --- Save states on change ---
   useEffect(() => {
@@ -130,6 +196,7 @@ export default function App() {
     setPlan(newPlan);
     setSetupDetails(details);
     setActiveTab('workout');
+    triggerSuccessHaptic();
   };
 
   const handleUpdateSettings = (updates: Partial<UserSettings>) => {
@@ -147,6 +214,7 @@ export default function App() {
       const filtered = prev.filter(log => log.date !== date);
       return [...filtered, newLog].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     });
+    triggerSuccessHaptic();
   };
 
   const handleDeleteWeightLog = (id: string) => {
@@ -314,6 +382,7 @@ export default function App() {
                 localStorage.setItem('gym_checklist_onboarded', 'true');
                 localStorage.setItem('gym_checklist_settings', JSON.stringify(completedSettings));
                 localStorage.setItem('gym_checklist_logs', JSON.stringify([initialLog]));
+                triggerSuccessHaptic();
               }}
             />
           </div>
