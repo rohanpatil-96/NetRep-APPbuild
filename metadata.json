@@ -1,0 +1,8 @@
+{
+  "name": "Remix: NextRep",
+  "description": "An intuitive, offline-first weekly workout routine checklist and weight tracking journey with a BMI speedometer gauge.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
