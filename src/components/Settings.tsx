@@ -1,13 +1,133 @@
-import { UserSettings } from '../data/exercises';
-import { User, ChevronRight, HelpCircle, ArrowLeftRight } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { UserSettings, DayPlan, WeightLog } from '../data/exercises';
+import { 
+  User, 
+  HelpCircle, 
+  ArrowLeftRight, 
+  Download, 
+  Upload, 
+  FolderSync, 
+  CheckCircle, 
+  XCircle, 
+  Database 
+} from 'lucide-react';
 
 interface SettingsProps {
   settings: UserSettings;
   onUpdateSettings: (updates: Partial<UserSettings>) => void;
   onResetApp: () => void;
+  theme: 'dark' | 'light';
+  weightLogs: WeightLog[];
+  plan: DayPlan[] | null;
+  setupDetails: {
+    splitType: '4-day' | '5-day' | '6-day';
+    location: 'gym' | 'home';
+    equipmentPref: 'bodyweight' | 'weights' | 'machines' | 'mix';
+    expectedTime: '30 min' | '45 min' | '60 min' | '90 min';
+    targetGoal: any;
+  };
+  hasOnboarded: boolean;
+  onImportData: (importedJSON: string) => Promise<boolean>;
 }
 
-export default function Settings({ settings, onUpdateSettings, onResetApp }: SettingsProps) {
+export default function Settings({ 
+  settings, 
+  onUpdateSettings, 
+  onResetApp,
+  theme,
+  weightLogs,
+  plan,
+  setupDetails,
+  hasOnboarded,
+  onImportData
+}: SettingsProps) {
+  const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExport = () => {
+    const backupData = {
+      version: 1,
+      exportDate: new Date().toISOString(),
+      theme,
+      settings,
+      weightLogs,
+      plan,
+      setupDetails,
+      hasOnboarded
+    };
+    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
+      JSON.stringify(backupData, null, 2)
+    )}`;
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute('href', jsonString);
+    downloadAnchor.setAttribute('download', `nextrep_backup_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const content = event.target?.result;
+      if (typeof content === 'string') {
+        const success = await onImportData(content);
+        if (success) {
+          setImportStatus('success');
+          setTimeout(() => setImportStatus('idle'), 3000);
+        } else {
+          setImportStatus('error');
+          setTimeout(() => setImportStatus('idle'), 3000);
+        }
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && (file.type === "application/json" || file.name.endsWith('.json'))) {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const content = event.target?.result;
+        if (typeof content === 'string') {
+          const success = await onImportData(content);
+          if (success) {
+            setImportStatus('success');
+            setTimeout(() => setImportStatus('idle'), 3000);
+          } else {
+            setImportStatus('error');
+            setTimeout(() => setImportStatus('idle'), 3000);
+          }
+        }
+      };
+      reader.readAsText(file);
+    } else {
+      setImportStatus('error');
+      setTimeout(() => setImportStatus('idle'), 3000);
+    }
+  };
+
   const handleUnitChange = (unit: 'kg' | 'lbs') => {
     if (settings.weightUnit === unit) return;
 
@@ -171,6 +291,96 @@ export default function Settings({ settings, onUpdateSettings, onResetApp }: Set
             Changing units converts starting and target weights automatically so your progress charts remain mathematically perfect.
             Your BMI calculation utilizes metric standards internally (BMI = kg / m²) and handles standard conversions flawlessly.
           </p>
+        </div>
+      </div>
+
+      {/* Backup & Portability Section */}
+      <div className="bg-scand-card border border-scand-border rounded-3xl p-6 shadow-sm space-y-5 animate-fade-in">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-accent-dim flex items-center justify-center text-accent border border-accent/10">
+            <Database className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-sm font-display font-black uppercase tracking-wider text-scand-text">Data Backup & Portability</h2>
+            <p className="text-xs text-scand-text/75 mt-1 leading-relaxed">
+              Export your full settings, training routine, logs, and progress charts as a JSON file to transfer between devices.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Export Action */}
+          <div className="bg-scand-bg/40 border border-scand-border p-4 rounded-2xl flex flex-col justify-between space-y-4">
+            <div>
+              <h4 className="text-xs font-display uppercase tracking-wider font-extrabold text-scand-text">Backup Data</h4>
+              <p className="text-[11px] text-scand-text/60 mt-1 leading-relaxed">
+                Download a secure snapshot of your current configurations, workout schedules, and recorded body metrics.
+              </p>
+            </div>
+            <button
+              onClick={handleExport}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent text-scand-bg hover:bg-accent/90 text-xs font-display uppercase tracking-wider font-extrabold rounded-xl transition-all cursor-pointer shadow-xs"
+            >
+              <Download className="w-4 h-4" />
+              Export Backup JSON
+            </button>
+          </div>
+
+          {/* Import Action (Drag and drop zone) */}
+          <div 
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed p-4 rounded-2xl flex flex-col justify-between transition-all ${
+              isDragging 
+                ? 'border-accent bg-accent/5 scale-[1.01]' 
+                : 'border-scand-border bg-scand-bg/40'
+            }`}
+          >
+            <div className="text-center md:text-left">
+              <h4 className="text-xs font-display uppercase tracking-wider font-extrabold text-scand-text flex items-center justify-center md:justify-start gap-1.5">
+                <Upload className="w-3.5 h-3.5 text-accent" />
+                Restore Data
+              </h4>
+              <p className="text-[11px] text-scand-text/60 mt-1 leading-relaxed">
+                Drag and drop your exported backup file here, or click below to select it from your device.
+              </p>
+            </div>
+
+            <div className="mt-4">
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileChange} 
+                accept=".json" 
+                className="hidden" 
+              />
+              
+              {importStatus === 'idle' && (
+                <button
+                  onClick={handleImportClick}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-scand-bg border border-scand-border hover:bg-scand-border/50 text-scand-text text-xs font-display uppercase tracking-wider font-extrabold rounded-xl transition-all cursor-pointer"
+                >
+                  <FolderSync className="w-4 h-4 text-accent" />
+                  Import Backup file
+                </button>
+              )}
+
+              {importStatus === 'success' && (
+                <div className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-xs font-semibold rounded-xl animate-bounce">
+                  <CheckCircle className="w-4 h-4" />
+                  Restore Successful!
+                </div>
+              )}
+
+              {importStatus === 'error' && (
+                <div className="flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-semibold rounded-xl">
+                  <XCircle className="w-4 h-4" />
+                  Invalid Backup File Format
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

@@ -257,7 +257,69 @@ export default function App() {
   };
 
   const handleUpdateSettings = (updates: Partial<UserSettings>) => {
+    const oldUnit = settings.weightUnit;
+    const newUnit = updates.weightUnit;
+    if (newUnit && oldUnit !== newUnit) {
+      setWeightLogs(prevLogs => prevLogs.map(log => {
+        let newWeight = log.weight;
+        if (newUnit === 'kg') {
+          // Convert lbs to kg
+          newWeight = Math.round((log.weight * 0.45359237) * 10) / 10;
+        } else {
+          // Convert kg to lbs
+          newWeight = Math.round((log.weight / 0.45359237) * 10) / 10;
+        }
+        return { ...log, weight: newWeight };
+      }));
+    }
     setSettings(prev => ({ ...prev, ...updates }));
+  };
+
+  const handleImportData = async (importedJSON: string): Promise<boolean> => {
+    try {
+      const data = JSON.parse(importedJSON);
+      if (!data || typeof data !== 'object') return false;
+
+      if (data.theme === 'dark' || data.theme === 'light') {
+        setTheme(data.theme);
+        await setStorageItem('gym_checklist_theme', data.theme);
+      }
+
+      if (data.settings && typeof data.settings === 'object') {
+        setSettings(data.settings);
+        await setStorageItem('gym_checklist_settings', JSON.stringify(data.settings));
+      }
+
+      if (Array.isArray(data.weightLogs)) {
+        setWeightLogs(data.weightLogs);
+        await setStorageItem('gym_checklist_logs', JSON.stringify(data.weightLogs));
+      }
+
+      if (data.plan === null || Array.isArray(data.plan)) {
+        setPlan(data.plan);
+        if (data.plan) {
+          await setStorageItem('gym_checklist_plan', JSON.stringify(data.plan));
+        } else {
+          await removeStorageItem('gym_checklist_plan');
+        }
+      }
+
+      if (data.setupDetails && typeof data.setupDetails === 'object') {
+        setSetupDetails(data.setupDetails);
+        await setStorageItem('gym_checklist_setup', JSON.stringify(data.setupDetails));
+      }
+
+      if (typeof data.hasOnboarded === 'boolean') {
+        setHasOnboarded(data.hasOnboarded);
+        await setStorageItem('gym_checklist_onboarded', data.hasOnboarded ? 'true' : 'false');
+      }
+
+      triggerSuccessHaptic();
+      return true;
+    } catch (e) {
+      console.error('Failed to import data:', e);
+      return false;
+    }
   };
 
   const handleAddWeightLog = (weight: number, date: string) => {
@@ -555,6 +617,12 @@ export default function App() {
                   settings={settings}
                   onUpdateSettings={handleUpdateSettings}
                   onResetApp={() => setShowResetModal(true)}
+                  theme={theme}
+                  weightLogs={weightLogs}
+                  plan={plan}
+                  setupDetails={setupDetails}
+                  hasOnboarded={hasOnboarded}
+                  onImportData={handleImportData}
                 />
               )}
             </div>
