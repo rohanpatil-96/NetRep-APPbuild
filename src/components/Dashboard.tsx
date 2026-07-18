@@ -147,35 +147,6 @@ export default function Dashboard({
         </div>
       </div>
 
-      {/* Routine Toolbar Actions */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-scand-card border border-scand-border p-3.5 rounded-2xl shadow-sm">
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setHideCompleted(!hideCompleted)}
-            className="inline-flex items-center gap-1.5 py-2 px-4 rounded-xl text-xs font-display uppercase tracking-wider font-extrabold bg-scand-bg/50 text-scand-text border border-scand-border transition-all hover:bg-scand-hover hover:text-accent cursor-pointer"
-          >
-            {hideCompleted ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-            {hideCompleted ? 'Show Completed' : 'Hide Completed'}
-          </button>
-
-          <button
-            onClick={handleResetPlan}
-            className="inline-flex items-center gap-1.5 py-2 px-4 rounded-xl text-xs font-display uppercase tracking-wider font-extrabold bg-scand-bg/50 text-scand-text border border-scand-border transition-all hover:bg-scand-hover hover:text-accent cursor-pointer"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Reset Checklist
-          </button>
-        </div>
-
-        <button
-          onClick={() => window.print()}
-          className="inline-flex items-center gap-1.5 py-2 px-4 rounded-xl text-xs font-display uppercase tracking-wider font-extrabold bg-scand-bg/50 text-scand-text border border-scand-border transition-all hover:bg-scand-hover hover:text-accent cursor-pointer"
-        >
-          <Printer className="w-3.5 h-3.5" />
-          Print / PDF
-        </button>
-      </div>
-
       {/* 7 Days Workout List */}
       <div className="space-y-4">
         {plan.map((dayPlan, dayIdx) => {
@@ -363,6 +334,35 @@ export default function Dashboard({
             </div>
           );
         })}
+      </div>
+
+      {/* Routine Toolbar Actions (Relocated to the bottom & Optimized for mobile) */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-scand-card border border-scand-border p-3 rounded-2xl shadow-sm mt-6">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 flex-1">
+          <button
+            onClick={() => setHideCompleted(!hideCompleted)}
+            className="inline-flex items-center justify-center gap-1.5 py-1.5 sm:py-2 px-2.5 sm:px-4 rounded-xl text-[10px] sm:text-xs font-display uppercase tracking-wider font-extrabold bg-scand-bg/50 text-scand-text border border-scand-border transition-all hover:bg-scand-hover hover:text-accent cursor-pointer"
+          >
+            {hideCompleted ? <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <EyeOff className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
+            <span className="truncate">{hideCompleted ? 'Show Done' : 'Hide Done'}</span>
+          </button>
+
+          <button
+            onClick={handleResetPlan}
+            className="inline-flex items-center justify-center gap-1.5 py-1.5 sm:py-2 px-2.5 sm:px-4 rounded-xl text-[10px] sm:text-xs font-display uppercase tracking-wider font-extrabold bg-scand-bg/50 text-scand-text border border-scand-border transition-all hover:bg-scand-hover hover:text-accent cursor-pointer"
+          >
+            <RotateCcw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            <span className="truncate">Reset Week</span>
+          </button>
+        </div>
+
+        <button
+          onClick={() => window.print()}
+          className="inline-flex items-center justify-center gap-1.5 py-1.5 sm:py-2 px-2.5 sm:px-4 rounded-xl text-[10px] sm:text-xs font-display uppercase tracking-wider font-extrabold bg-scand-bg/50 text-scand-text border border-scand-border transition-all hover:bg-scand-hover hover:text-accent cursor-pointer w-full sm:w-auto shrink-0"
+        >
+          <Printer className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+          <span>Print / PDF</span>
+        </button>
       </div>
 
       <p className="text-[11px] text-center text-scand-text/60 pt-4 leading-normal">
