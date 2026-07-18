@@ -1,12 +1,13 @@
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { Capacitor } from '@capacitor/core';
+import { getCachedItemSync } from './storage';
 
 /**
  * Check if the user has disabled vibrations in settings.
  */
 const areVibrationsDisabled = (): boolean => {
   try {
-    const saved = localStorage.getItem('gym_checklist_settings');
+    const saved = getCachedItemSync('gym_checklist_settings');
     if (saved) {
       const parsed = JSON.parse(saved);
       return !!parsed.disableVibrations;

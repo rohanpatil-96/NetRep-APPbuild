@@ -20,6 +20,7 @@ import PlanBuilder from './components/PlanBuilder';
 import ProfileOnboarding from './components/ProfileOnboarding';
 import { Capacitor } from '@capacitor/core';
 import { triggerSelectionHaptic, triggerSuccessHaptic } from './lib/haptics';
+import { initStorageCache, getStorageItem, setStorageItem, removeStorageItem } from './lib/storage';
 
 const EMPTY_SETTINGS: UserSettings = {
   age: 0,
@@ -31,67 +32,83 @@ const EMPTY_SETTINGS: UserSettings = {
 };
 
 export default function App() {
+  // --- Storage Loading State ---
+  const [isStorageReady, setIsStorageReady] = useState(false);
+
   // --- Persistent States ---
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const saved = localStorage.getItem('gym_checklist_theme');
-    if (saved === 'dark' || saved === 'light') return saved;
-    return 'light'; // Default to light (warm Scandinavian cream sand)
-  });
-
-  const [settings, setSettings] = useState<UserSettings>(() => {
-    const saved = localStorage.getItem('gym_checklist_settings');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) { /* fallback */ }
-    }
-    return EMPTY_SETTINGS;
-  });
-
-  const [weightLogs, setWeightLogs] = useState<WeightLog[]>(() => {
-    const saved = localStorage.getItem('gym_checklist_logs');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) { /* fallback */ }
-    }
-    return [];
-  });
-
-  const [plan, setPlan] = useState<DayPlan[] | null>(() => {
-    const saved = localStorage.getItem('gym_checklist_plan');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) { /* fallback */ }
-    }
-    return null; // Force builder onboarding initially
-  });
-
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [settings, setSettings] = useState<UserSettings>(EMPTY_SETTINGS);
+  const [weightLogs, setWeightLogs] = useState<WeightLog[]>([]);
+  const [plan, setPlan] = useState<DayPlan[] | null>(null);
   const [setupDetails, setSetupDetails] = useState<{
     splitType: '4-day' | '5-day' | '6-day';
     location: 'gym' | 'home';
     equipmentPref: 'bodyweight' | 'weights' | 'machines' | 'mix';
     expectedTime: '30 min' | '45 min' | '60 min' | '90 min';
     targetGoal: TargetGoal;
-  }>(() => {
-    const saved = localStorage.getItem('gym_checklist_setup');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) { /* fallback */ }
-    }
-    return {
-      splitType: '4-day',
-      location: 'gym',
-      equipmentPref: 'mix',
-      expectedTime: '60 min',
-      targetGoal: 'muscle_build'
-    };
+  }>({
+    splitType: '4-day',
+    location: 'gym',
+    equipmentPref: 'mix',
+    expectedTime: '60 min',
+    targetGoal: 'muscle_build'
   });
-
   const [activeTab, setActiveTab] = useState<'workout' | 'weight' | 'settings'>('workout');
-
-  const [hasOnboarded, setHasOnboarded] = useState<boolean>(() => {
-    return localStorage.getItem('gym_checklist_onboarded') === 'true';
-  });
+  const [hasOnboarded, setHasOnboarded] = useState<boolean>(false);
 
   // --- Debug / Developer Mode (7-tap logo clicks) ---
   const [logoClicks, setLogoClicks] = useState(0);
   const [showDebugModal, setShowDebugModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+
+  // --- Async Storage Loading Phase ---
+  useEffect(() => {
+    const loadSavedData = async () => {
+      const keys = [
+        'gym_checklist_theme',
+        'gym_checklist_settings',
+        'gym_checklist_logs',
+        'gym_checklist_plan',
+        'gym_checklist_setup',
+        'gym_checklist_onboarded'
+      ];
+      // Preload values into synchronous cache so haptics/theme reads work immediately
+      await initStorageCache(keys);
+
+      const savedTheme = await getStorageItem('gym_checklist_theme');
+      if (savedTheme === 'dark' || savedTheme === 'light') {
+        setTheme(savedTheme);
+      }
+
+      const savedSettings = await getStorageItem('gym_checklist_settings');
+      if (savedSettings) {
+        try { setSettings(JSON.parse(savedSettings)); } catch (e) { /* ignore */ }
+      }
+
+      const savedLogs = await getStorageItem('gym_checklist_logs');
+      if (savedLogs) {
+        try { setWeightLogs(JSON.parse(savedLogs)); } catch (e) { /* ignore */ }
+      }
+
+      const savedPlan = await getStorageItem('gym_checklist_plan');
+      if (savedPlan) {
+        try { setPlan(JSON.parse(savedPlan)); } catch (e) { /* ignore */ }
+      }
+
+      const savedSetup = await getStorageItem('gym_checklist_setup');
+      if (savedSetup) {
+        try { setSetupDetails(JSON.parse(savedSetup)); } catch (e) { /* ignore */ }
+      }
+
+      const savedOnboarded = await getStorageItem('gym_checklist_onboarded');
+      setHasOnboarded(savedOnboarded === 'true');
+
+      setIsStorageReady(true);
+    };
+
+    loadSavedData();
+  }, []);
+
 
   // --- HTML Theme Effect & Mobile StatusBar Configuration ---
   useEffect(() => {
@@ -103,7 +120,9 @@ export default function App() {
       root.classList.remove('dark');
       root.setAttribute('data-theme', 'light');
     }
-    localStorage.setItem('gym_checklist_theme', theme);
+    if (isStorageReady) {
+      setStorageItem('gym_checklist_theme', theme);
+    }
 
     // Apply StatusBar changes if on Native platform
     const updateStatusBar = async () => {
@@ -123,7 +142,7 @@ export default function App() {
       }
     };
     updateStatusBar();
-  }, [theme]);
+  }, [theme, isStorageReady]);
 
   // --- Android Physical Back Button Support ---
   useEffect(() => {
@@ -172,24 +191,32 @@ export default function App() {
 
   // --- Save states on change ---
   useEffect(() => {
-    localStorage.setItem('gym_checklist_settings', JSON.stringify(settings));
-  }, [settings]);
-
-  useEffect(() => {
-    localStorage.setItem('gym_checklist_logs', JSON.stringify(weightLogs));
-  }, [weightLogs]);
-
-  useEffect(() => {
-    if (plan) {
-      localStorage.setItem('gym_checklist_plan', JSON.stringify(plan));
-    } else {
-      localStorage.removeItem('gym_checklist_plan');
+    if (isStorageReady) {
+      setStorageItem('gym_checklist_settings', JSON.stringify(settings));
     }
-  }, [plan]);
+  }, [settings, isStorageReady]);
 
   useEffect(() => {
-    localStorage.setItem('gym_checklist_setup', JSON.stringify(setupDetails));
-  }, [setupDetails]);
+    if (isStorageReady) {
+      setStorageItem('gym_checklist_logs', JSON.stringify(weightLogs));
+    }
+  }, [weightLogs, isStorageReady]);
+
+  useEffect(() => {
+    if (isStorageReady) {
+      if (plan) {
+        setStorageItem('gym_checklist_plan', JSON.stringify(plan));
+      } else {
+        removeStorageItem('gym_checklist_plan');
+      }
+    }
+  }, [plan, isStorageReady]);
+
+  useEffect(() => {
+    if (isStorageReady) {
+      setStorageItem('gym_checklist_setup', JSON.stringify(setupDetails));
+    }
+  }, [setupDetails, isStorageReady]);
 
   // --- State Updators ---
   const handlePlanGenerated = (newPlan: DayPlan[], details: typeof setupDetails) => {
@@ -277,16 +304,16 @@ export default function App() {
     setHasOnboarded(true);
     setActiveTab('workout');
 
-    localStorage.setItem('gym_checklist_settings', JSON.stringify(demoSettings));
-    localStorage.setItem('gym_checklist_logs', JSON.stringify(demoWeightLogs));
-    localStorage.setItem('gym_checklist_setup', JSON.stringify(demoSetup));
-    localStorage.setItem('gym_checklist_plan', JSON.stringify(demoPlan));
-    localStorage.setItem('gym_checklist_onboarded', 'true');
+    setStorageItem('gym_checklist_settings', JSON.stringify(demoSettings));
+    setStorageItem('gym_checklist_logs', JSON.stringify(demoWeightLogs));
+    setStorageItem('gym_checklist_setup', JSON.stringify(demoSetup));
+    setStorageItem('gym_checklist_plan', JSON.stringify(demoPlan));
+    setStorageItem('gym_checklist_onboarded', 'true');
 
     setShowDebugModal(false);
   };
 
-  const handleResetApp = () => {
+  const handleResetApp = async () => {
     setSettings(EMPTY_SETTINGS);
     setWeightLogs([]);
     setPlan(null);
@@ -299,9 +326,34 @@ export default function App() {
     });
     setHasOnboarded(false);
     setActiveTab('workout');
-    localStorage.clear();
+    await removeStorageItem('gym_checklist_settings');
+    await removeStorageItem('gym_checklist_logs');
+    await removeStorageItem('gym_checklist_plan');
+    await removeStorageItem('gym_checklist_setup');
+    await removeStorageItem('gym_checklist_onboarded');
+    await removeStorageItem('gym_checklist_theme');
     setShowResetModal(false);
   };
+
+  if (!isStorageReady) {
+    return (
+      <div className="min-h-screen bg-scand-bg flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4 animate-pulse">
+          <div className="w-12 h-12 rounded-2xl bg-accent flex items-center justify-center text-scand-bg shadow-sm">
+            <Dumbbell className="w-6 h-6 animate-bounce" />
+          </div>
+          <div className="text-center">
+            <h1 className="text-lg font-display font-black tracking-widest uppercase text-scand-text">
+              NextRep
+            </h1>
+            <p className="text-[10px] text-scand-text/50 uppercase tracking-wider font-extrabold mt-1">
+              Initializing Secure Native Preferences...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-scand-bg text-scand-text transition-colors duration-300 font-sans pb-16 md:pb-8">
@@ -379,9 +431,9 @@ export default function App() {
                 
                 setWeightLogs([initialLog]);
                 setHasOnboarded(true);
-                localStorage.setItem('gym_checklist_onboarded', 'true');
-                localStorage.setItem('gym_checklist_settings', JSON.stringify(completedSettings));
-                localStorage.setItem('gym_checklist_logs', JSON.stringify([initialLog]));
+                setStorageItem('gym_checklist_onboarded', 'true');
+                setStorageItem('gym_checklist_settings', JSON.stringify(completedSettings));
+                setStorageItem('gym_checklist_logs', JSON.stringify([initialLog]));
                 triggerSuccessHaptic();
               }}
             />
