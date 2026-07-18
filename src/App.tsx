@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Dumbbell, 
   Scale, 
@@ -60,6 +60,23 @@ export default function App() {
   const [logoClicks, setLogoClicks] = useState(0);
   const [showDebugModal, setShowDebugModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+
+  // Refs for native back button state tracking to avoid stale closures and redundant listener recreation
+  const showDebugModalRef = useRef(showDebugModal);
+  const showResetModalRef = useRef(showResetModal);
+  const activeTabRef = useRef(activeTab);
+
+  useEffect(() => {
+    showDebugModalRef.current = showDebugModal;
+  }, [showDebugModal]);
+
+  useEffect(() => {
+    showResetModalRef.current = showResetModal;
+  }, [showResetModal]);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
 
   // --- Async Storage Loading Phase ---
   useEffect(() => {
@@ -129,12 +146,18 @@ export default function App() {
       if (Capacitor.isNativePlatform()) {
         try {
           const { StatusBar, Style } = await import('@capacitor/status-bar');
+          // Enforce webview overlaying the status bar for full edge-to-edge
+          await StatusBar.setOverlaysWebView({ overlay: true });
+          
           if (theme === 'dark') {
             await StatusBar.setStyle({ style: Style.Dark });
-            await StatusBar.setBackgroundColor({ color: '#0b111e' }); // Matches dark mode --color-scand-bg
           } else {
             await StatusBar.setStyle({ style: Style.Light });
-            await StatusBar.setBackgroundColor({ color: '#faf3dd' }); // Matches light mode --color-scand-bg
+          }
+          
+          if (Capacitor.getPlatform() === 'android') {
+            // Set background to transparent so our web app's header background shines through
+            await StatusBar.setBackgroundColor({ color: '#00000000' });
           }
         } catch (e) {
           console.warn('Native status bar adjustment skipped:', e);
@@ -146,25 +169,31 @@ export default function App() {
 
   // --- Android Physical Back Button Support ---
   useEffect(() => {
-    let backButtonListener: Promise<{ remove: () => void }> | null = null;
+    let activeListener: { remove: () => void } | null = null;
+    let isCancelled = false;
 
     if (Capacitor.isNativePlatform()) {
       const initBackButton = async () => {
         try {
           const { App: CapApp } = await import('@capacitor/app');
-          backButtonListener = Promise.resolve(
-            CapApp.addListener('backButton', () => {
-              if (showDebugModal) {
-                setShowDebugModal(false);
-              } else if (showResetModal) {
-                setShowResetModal(false);
-              } else if (activeTab !== 'workout') {
-                setActiveTab('workout');
-              } else {
-                CapApp.exitApp();
-              }
-            })
-          );
+          if (isCancelled) return;
+          const listener = await CapApp.addListener('backButton', () => {
+            if (showDebugModalRef.current) {
+              setShowDebugModal(false);
+            } else if (showResetModalRef.current) {
+              setShowResetModal(false);
+            } else if (activeTabRef.current !== 'workout') {
+              setActiveTab('workout');
+            } else {
+              CapApp.exitApp();
+            }
+          });
+          
+          if (isCancelled) {
+            listener.remove();
+          } else {
+            activeListener = listener;
+          }
         } catch (e) {
           console.warn('Native back button listener failed to initialize:', e);
         }
@@ -173,11 +202,12 @@ export default function App() {
     }
 
     return () => {
-      if (backButtonListener) {
-        backButtonListener.then(listener => listener.remove());
+      isCancelled = true;
+      if (activeListener) {
+        activeListener.remove();
       }
     };
-  }, [showDebugModal, showResetModal, activeTab]);
+  }, []);
 
   // --- Haptics on tab changes ---
   const isFirstRender = useRef(true);

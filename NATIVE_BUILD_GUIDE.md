@@ -15,8 +15,9 @@
 1. [Initial Requirements & Setup](#1-initial-requirements--setup)
 2. [Step-by-Step iOS App Build (Xcode)](#2-step-by-step-ios-app-build-xcode)
 3. [Step-by-Step Android App Build (Android Studio)](#3-step-by-step-android-app-build-android-studio)
-4. [How to Update Your App (When code changes in AI Studio)](#4-how-to-update-your-app-when-code-changes-in-ai-studio)
-5. [M1 Mac Troubleshooting & Tips](#5-m1-mac-troubleshooting--tips)
+4. [App Icons & Splash Screen Asset Generation](#4-app-icons--splash-screen-asset-generation)
+5. [How to Update Your App (When code changes in AI Studio)](#5-how-to-update-your-app-when-code-changes-in-ai-studio)
+6. [M1 Mac Troubleshooting & Tips](#6-m1-mac-troubleshooting--tips)
 
 ---
 
@@ -103,7 +104,42 @@ Once Android Studio loads the project completely:
 
 ---
 
-## 4. How to Update Your App (When code changes in AI Studio)
+## 4. App Icons & Splash Screen Asset Generation
+
+Before submitting to the App Store or Google Play, your app needs custom icons and splash screens. Without them, Xcode and Android Studio will use default fallback icons or fail verification during store submission.
+
+Capacitor makes this incredibly easy with an automated asset generation tool!
+
+### Step A: Place your master asset files
+Create or place your master visual files in the `assets/` folder of your project:
+1. **`assets/icon.png`** (An icon of your app, square, at least **1024 × 1024 px**, with no rounded corners).
+2. **`assets/splash.png`** (A splash screen image, at least **2732 × 2732 px**, with your icon centered on a solid background color).
+
+*Optional Adaptive Android Icons (highly recommended for a premium Android feel):*
+Instead of a single `icon.png`, you can provide:
+* `assets/icon-only.png` (The logo element on a transparent background, 1024 × 1024 px).
+* `assets/icon-background.png` (The solid background color or pattern, 1024 × 1024 px).
+
+### Step B: Run the automatic generator
+In your Terminal, run the following commands to instantly generate and inject all required native icon and splash screen resolutions into your iOS and Android projects:
+
+```bash
+# 1. Install the capacitor asset generator tool
+npm install -D @capacitor/assets
+
+# 2. Run the automatic generation command
+npx capacitor-assets generate
+```
+
+This will automatically create dozens of cropped, perfectly resized files and place them in:
+* `ios/App/App/Assets.xcassets/AppIcon.appiconset`
+* `android/app/src/main/res/mipmap-*`
+
+Once generated, they are immediately ready to compile!
+
+---
+
+## 5. How to Update Your App (When code changes in AI Studio)
 
 Whenever you edit the design or add functions inside Google AI Studio, updating your native iOS and Android apps takes less than 60 seconds!
 
@@ -126,7 +162,7 @@ npx cap sync
 
 ---
 
-## 5. M1 Mac Troubleshooting & Tips
+## 6. M1 Mac Troubleshooting & Tips
 
 Because you are using an M1 MacBook Pro (Apple Silicon), keep these simple tips in mind:
 

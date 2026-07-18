@@ -5,11 +5,12 @@ const config: CapacitorConfig = {
   appName: 'NextRep',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'https',
+    iosScheme: 'https'
   },
   plugins: {
     StatusBar: {
-      overlaysWebView: false
+      overlaysWebView: true
     }
   }
 };

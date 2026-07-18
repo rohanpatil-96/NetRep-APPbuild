@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#F4F0EA"/>
+  
+  <!-- Stylized Geometric Gym Emblem -->
+  <g transform="translate(128, 128)">
+    <!-- Dumbbell shaft -->
+    <rect x="112" y="80" width="32" height="96" rx="8" fill="#1C1C1E"/>
+    
+    <!-- Left Weight Plates -->
+    <rect x="48" y="48" width="48" height="160" rx="16" fill="#1C1C1E"/>
+    <rect x="16" y="72" width="24" height="112" rx="12" fill="#E28B65"/>
+    
+    <!-- Right Weight Plates -->
+    <rect x="160" y="48" width="48" height="160" rx="16" fill="#1C1C1E"/>
+    <rect x="216" y="72" width="24" height="112" rx="12" fill="#E28B65"/>
+    
+    <!-- Intersecting "N" Monogram lines -->
+    <path d="M 48,208 L 208,48" stroke="#F4F0EA" stroke-width="16" stroke-linecap="round"/>
+    <path d="M 48,208 L 208,48" stroke="#1C1C1E" stroke-width="8" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Wordmark -->
+  <text x="256" y="430" 
+        font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" 
+        font-size="44" 
+        font-weight="900" 
+        letter-spacing="6" 
+        fill="#1C1C1E" 
+        text-anchor="middle">
+    NEXTREP
+  </text>
+  <text x="256" y="460" 
+        font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" 
+        font-size="14" 
+        font-weight="700" 
+        letter-spacing="4" 
+        fill="#E28B65" 
+        text-anchor="middle">
+    NATIVE FITNESS SUITE
+  </text>
+</svg>
